@@ -48,7 +48,7 @@ jobs:
             echo "ERROR: deliberately invalid theorem was accepted"
             exit 1
           fi
-          if ! grep -q 'type mismatch' negative-control.log; then
+          if ! grep -qi 'type mismatch' negative-control.log; then
             cat negative-control.log
             echo "ERROR: negative control failed for an unexpected reason"
             exit 1
