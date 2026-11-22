@@ -1,0 +1,56 @@
+name: SBT Lean Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "SBT.lean"
+      - "lean-toolchain"
+      - "lakefile.toml"
+      - "Lean_Verification/**"
+      - ".github/workflows/lean-verification.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lean-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject placeholders in the formal theorem source
+        shell: bash
+        run: |
+          if grep -nE '(^|[^[:alnum:]_])(sorry|admit|sorryAx)([^[:alnum:]_]|$)|^[[:space:]]*axiom[[:space:]]' SBT.lean; then
+            echo "Disallowed placeholder or custom axiom found in SBT.lean"
+            exit 1
+          fi
+
+      - name: Build pinned Lean project
+        uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          build: true
+
+      - name: Print theorem axioms
+        run: lake env lean SBT.lean
+
+      - name: Negative control must fail with a type mismatch
+        shell: bash
+        run: |
+          if lake env lean Lean_Verification/R5_T1/Negative_Control.lean > negative-control.log 2>&1; then
+            cat negative-control.log
+            echo "ERROR: deliberately invalid theorem was accepted"
+            exit 1
+          fi
+          if ! grep -q 'type mismatch' negative-control.log; then
+            cat negative-control.log
+            echo "ERROR: negative control failed for an unexpected reason"
+            exit 1
+          fi
+          echo "Expected negative-control rejection confirmed."
