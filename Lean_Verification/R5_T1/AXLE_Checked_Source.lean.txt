@@ -1,0 +1,22 @@
+-- Exact R5 theorem source from the successful user-reported AXLE pilot.
+-- AXLE client 1.9.1, environment lean-4.28.0, ignore_imports=True.
+-- AXLE: compilation True, failed declarations [], errors [], warnings [].
+-- The independent GitHub project uses a core-Lean proof of the same statement.
+universe u v
+
+theorem SBT_R5_T1
+    {X : Type u} {Y : Type v}
+    (J : X → Y) (R : X → Prop) :
+    (∃ r : Y → Prop, ∀ x, R x ↔ r (J x)) ↔
+    (∀ x y, J x = J y → (R x ↔ R y)) := by
+  constructor
+  · rintro ⟨r, hr⟩ x y hxy
+    simpa only [hr, hxy]
+  · intro h
+    refine ⟨fun z => ∃ x, J x = z ∧ R x, ?_⟩
+    intro x
+    constructor
+    · intro hx
+      exact ⟨x, rfl, hx⟩
+    · rintro ⟨y, hy, hRy⟩
+      exact (h y x hy).mp hRy
